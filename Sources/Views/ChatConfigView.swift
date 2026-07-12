@@ -46,7 +46,7 @@ struct ChatConfigView: View {
                             Text("Độ trễ phản hồi: \(String(format: "%.1f", conversation.replyDelay))s")
                                 .font(.system(size: 15))
                             Slider(value: $conversation.replyDelay, in: 0.5...10.0, step: 0.5)
-                                .tint(.blue)
+                                .tint(.primary)
                         }
                         .padding(.vertical, 4)
                     }

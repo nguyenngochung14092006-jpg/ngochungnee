@@ -118,7 +118,8 @@ Tran trong cam on Quy khach.
             content: "TTTB 030206013094",
             isFromMe: true,
             timestamp: hoursAgo(3),
-            isAutoReply: false
+            isAutoReply: false,
+            status: .failed
         )
         insert(conversation: c1414, messages: [msg1414_1, msg1414_2, msg1414_3, msg1414_4], context: context)
 

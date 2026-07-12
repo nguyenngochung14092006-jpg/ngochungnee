@@ -1,5 +1,6 @@
 import SwiftUI
 import SwiftData
+import PhotosUI
 
 /// ChatView — màn hình chat với bubble giống hệt iOS Messages
 struct ChatView: View {
@@ -11,9 +12,10 @@ struct ChatView: View {
     @State private var isShowingConfig = false
     @State private var isShowingDetail = false
     @State private var isTyping = false
-    @State private var scrollProxy: ScrollViewProxy? = nil
+    @State private var photoItem: PhotosPickerItem?
+    @State private var showPhotoPicker = false
+    @FocusState private var isComposerFocused: Bool
 
-    // Unread count in back button (total unread across all conversations)
     @Query private var allConversations: [Conversation]
     var totalUnread: Int { allConversations.filter { !$0.isRead }.count }
 
@@ -23,76 +25,91 @@ struct ChatView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            // ── Navigation Bar ────────────────────────────────────────
             chatNavBar
-
             Divider()
-
-            // ── Messages Scroll ───────────────────────────────────────
-            ScrollViewReader { proxy in
-                ScrollView {
-                    LazyVStack(spacing: 0) {
-                        ForEach(groupedMessages, id: \.date) { group in
-                            // Date separator
-                            MessageSeparatorView(date: group.date)
-
-                            ForEach(Array(group.messages.enumerated()), id: \.element.id) { index, message in
-                                let isLast = index == group.messages.count - 1
-                                let nextIsFromMe = index + 1 < group.messages.count
-                                    ? group.messages[index + 1].isFromMe
-                                    : !message.isFromMe
-                                let isTail = isLast || nextIsFromMe != message.isFromMe
-
-                                MessageBubbleView(
-                                    message: message,
-                                    isTail: isTail
-                                )
-                                .id(message.id)
-                            }
-                        }
-
-                        // Typing indicator
-                        if isTyping {
-                            HStack(alignment: .bottom) {
-                                TypingIndicatorView()
-                                    .padding(.leading, 16)
-                                    .padding(.bottom, 4)
-                                Spacer()
-                            }
-                            .id("typing")
-                        }
-                    }
-                    .padding(.bottom, 8)
-                }
-                .onAppear {
-                    scrollProxy = proxy
-                    scrollToBottom(proxy: proxy)
-                    conversation.isRead = true
-                }
-                .onChange(of: conversation.messages.count) {
-                    scrollToBottom(proxy: proxy, animated: true)
-                }
-                .onChange(of: isTyping) {
-                    if isTyping {
-                        withAnimation {
-                            proxy.scrollTo("typing", anchor: .bottom)
-                        }
-                    }
-                }
-            }
-
-            // ── Input Bar ─────────────────────────────────────────────
-            inputBar
+            messagesScroll
         }
         .navigationBarHidden(true)
+        .safeAreaInset(edge: .bottom) { inputBar }
+        .photosPicker(isPresented: $showPhotoPicker, selection: $photoItem, matching: .images)
         .sheet(isPresented: $isShowingConfig) {
             ChatConfigView(conversation: conversation)
         }
         .sheet(isPresented: $isShowingDetail) {
             ContactDetailView(conversation: conversation)
         }
-        .onAppear {
-            conversation.isRead = true
+        .onChange(of: photoItem) { _, newItem in
+            guard let newItem else { return }
+            Task {
+                if let data = try? await newItem.loadTransferable(type: Data.self) {
+                    await MainActor.run { sendImage(data) }
+                }
+            }
+        }
+        .onAppear { conversation.isRead = true }
+    }
+
+    // MARK: - Messages
+
+    var messagesScroll: some View {
+        ScrollViewReader { proxy in
+            ScrollView {
+                LazyVStack(spacing: 0) {
+                    ForEach(groupedMessages, id: \.date) { group in
+                        MessageSeparatorView(date: group.date)
+
+                        ForEach(Array(group.messages.enumerated()), id: \.element.id) { index, message in
+                            let isLast = index == group.messages.count - 1
+                            let nextIsFromMe = index + 1 < group.messages.count
+                                ? group.messages[index + 1].isFromMe
+                                : !message.isFromMe
+                            let isTail = isLast || nextIsFromMe != message.isFromMe
+
+                            MessageBubbleView(
+                                message: message,
+                                isTail: isTail,
+                                onReact: { reaction in
+                                    if message.reaction == reaction {
+                                        message.reaction = nil
+                                    } else {
+                                        message.reaction = reaction
+                                    }
+                                }
+                            )
+                            .id(message.id)
+                        }
+                    }
+
+                    if isTyping {
+                        HStack(alignment: .bottom) {
+                            TypingIndicatorView()
+                                .padding(.leading, 16)
+                                .padding(.bottom, 4)
+                            Spacer()
+                        }
+                        .id("typing")
+                    }
+                }
+                .padding(.bottom, 8)
+            }
+            .scrollDismissesKeyboard(.interactively)
+            .onAppear {
+                scrollToBottom(proxy: proxy)
+                conversation.isRead = true
+            }
+            .onChange(of: conversation.messages.count) {
+                scrollToBottom(proxy: proxy, animated: true)
+            }
+            .onChange(of: isTyping) {
+                if isTyping {
+                    withAnimation { proxy.scrollTo("typing", anchor: .bottom) }
+                }
+            }
+            .onChange(of: isComposerFocused) {
+                if isComposerFocused {
+                    scrollToBottom(proxy: proxy, animated: true)
+                }
+            }
         }
     }
 
@@ -100,7 +117,6 @@ struct ChatView: View {
 
     var chatNavBar: some View {
         ZStack {
-            // Center: avatar + name (giống iOS Messages)
             Button {
                 isShowingDetail = true
             } label: {
@@ -128,7 +144,6 @@ struct ChatView: View {
             )
 
             HStack {
-                // Back button: chevron + số chưa đọc trong pill xám
                 Button {
                     dismiss()
                 } label: {
@@ -162,9 +177,16 @@ struct ChatView: View {
         VStack(spacing: 0) {
             Divider()
             HStack(alignment: .bottom, spacing: 6) {
-                // Plus button (vòng tròn xám nhạt giống iOS)
-                Button {
-                    // Attachment menu
+                // Menu đính kèm (+)
+                Menu {
+                    Button {
+                        showPhotoPicker = true
+                    } label: {
+                        Label("Ảnh", systemImage: "photo")
+                    }
+                    Button { } label: { Label("Camera", systemImage: "camera") }
+                    Button { } label: { Label("Nhãn dán", systemImage: "face.smiling") }
+                    Button { } label: { Label("Âm thanh", systemImage: "waveform") }
                 } label: {
                     Image(systemName: "plus")
                         .font(.system(size: 18, weight: .medium))
@@ -175,12 +197,12 @@ struct ChatView: View {
                 }
                 .padding(.bottom, 1)
 
-                // Text input
                 HStack(alignment: .bottom, spacing: 4) {
                     TextField("Tin nhắn văn bản \u{2022} SMS", text: $messageText, axis: .vertical)
                         .font(.system(size: 17))
-                        .lineLimit(5)
+                        .lineLimit(1...5)
                         .padding(.leading, 6)
+                        .focused($isComposerFocused)
 
                     if messageText.trimmingCharacters(in: .whitespaces).isEmpty {
                         Image(systemName: "mic.fill")
@@ -209,7 +231,6 @@ struct ChatView: View {
             }
             .padding(.horizontal, 12)
             .padding(.vertical, 8)
-            .padding(.bottom, 4)
         }
         .background(.background)
     }
@@ -221,47 +242,51 @@ struct ChatView: View {
         guard !text.isEmpty else { return }
         messageText = ""
 
-        let msg = Message(content: text, isFromMe: true)
+        // Tìm phản hồi tự động theo từ khóa
+        let reply = AutoReplyService.shared.reply(for: text, in: conversation)
+
+        let msg = Message(
+            content: text,
+            isFromMe: true,
+            status: reply == nil ? .failed : .sent
+        )
         msg.conversation = conversation
         conversation.messages.append(msg)
         conversation.lastMessage = text
         conversation.lastMessageDate = .now
         conversation.isRead = true
 
-        // Trigger auto-reply
-        AutoReplyService.shared.process(
-            incomingText: text,
-            conversation: conversation
-        ) { [self] replyText in
-            // Show typing indicator first
-            withAnimation { isTyping = true }
-
-            DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
-                withAnimation { isTyping = false }
-
-                let reply = Message(
-                    content: replyText,
-                    isFromMe: false,
-                    timestamp: .now,
-                    isAutoReply: true
-                )
-                reply.conversation = self.conversation
-                self.conversation.messages.append(reply)
-                self.conversation.lastMessage = replyText
-                self.conversation.lastMessageDate = .now
-            }
+        // Nếu khớp từ khóa → tự động trả lời sau delay
+        guard let replyText = reply else { return }
+        withAnimation { isTyping = true }
+        let delay = max(1.0, conversation.replyDelay)
+        DispatchQueue.main.asyncAfter(deadline: .now() + delay) {
+            withAnimation { isTyping = false }
+            let auto = Message(content: replyText, isFromMe: false, isAutoReply: true)
+            auto.conversation = self.conversation
+            self.conversation.messages.append(auto)
+            self.conversation.lastMessage = replyText
+            self.conversation.lastMessageDate = .now
         }
     }
 
+    func sendImage(_ data: Data) {
+        let msg = Message(content: "", isFromMe: true, status: .failed, imageData: data)
+        msg.conversation = conversation
+        conversation.messages.append(msg)
+        conversation.lastMessage = "[Hình ảnh]"
+        conversation.lastMessageDate = .now
+        conversation.isRead = true
+    }
+
     func scrollToBottom(proxy: ScrollViewProxy, animated: Bool = false) {
-        if let lastMsg = sortedMessages.last {
-            if animated {
-                withAnimation(.easeOut(duration: 0.3)) {
-                    proxy.scrollTo(lastMsg.id, anchor: .bottom)
-                }
-            } else {
+        guard let lastMsg = sortedMessages.last else { return }
+        if animated {
+            withAnimation(.easeOut(duration: 0.3)) {
                 proxy.scrollTo(lastMsg.id, anchor: .bottom)
             }
+        } else {
+            proxy.scrollTo(lastMsg.id, anchor: .bottom)
         }
     }
 

@@ -11,6 +11,7 @@ struct ConversationListView: View {
     @State private var isEditing = false
     @State private var selectedTab: FilterTab = .all
     @State private var searchText = ""
+    @FocusState private var isSearchFocused: Bool
 
     enum FilterTab { case all, unread }
 
@@ -92,7 +93,7 @@ struct ConversationListView: View {
                                 Label(conv.isRead ? "Chưa đọc" : "Đã đọc",
                                       systemImage: conv.isRead ? "message.badge" : "message")
                             }
-                            .tint(.blue)
+                            .tint(Color(.darkGray))
                         }
                     }
                 }
@@ -106,13 +107,23 @@ struct ConversationListView: View {
                     Image(systemName: "magnifyingglass")
                         .foregroundStyle(.secondary)
                         .font(.system(size: 16, weight: .medium))
-                    Text("Tìm kiếm")
+                    TextField("Tìm kiếm", text: $searchText)
                         .font(.system(size: 17))
-                        .foregroundStyle(.secondary)
-                    Spacer()
-                    Image(systemName: "mic.fill")
-                        .foregroundStyle(.secondary)
-                        .font(.system(size: 16))
+                        .focused($isSearchFocused)
+                        .autocorrectionDisabled()
+                    if isSearchFocused && !searchText.isEmpty {
+                        Button {
+                            searchText = ""
+                        } label: {
+                            Image(systemName: "xmark.circle.fill")
+                                .foregroundStyle(.secondary)
+                                .font(.system(size: 16))
+                        }
+                    } else {
+                        Image(systemName: "mic.fill")
+                            .foregroundStyle(.secondary)
+                            .font(.system(size: 16))
+                    }
                 }
                 .padding(.horizontal, 12)
                 .frame(height: 44)

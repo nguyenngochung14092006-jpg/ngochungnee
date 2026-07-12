@@ -19,6 +19,14 @@ final class Conversation {
     var fallbackReply: String       // Phản hồi mặc định nếu không khớp trigger
     var templateType: TemplateType  // Mẫu SMS (MobiFone / Viettel / None)
 
+    // Thông tin thuê bao dùng cho mẫu TTTB
+    var mName: String = ""
+    var mDob: String = ""
+    var mPhone: String = ""
+    var mCccd: String = ""
+    var mNgayCap: String = ""
+    var mNgayKichHoat: String = ""
+
     @Relationship(deleteRule: .cascade) var messages: [Message]
     @Relationship(deleteRule: .cascade) var replyRules: [ReplyRule]
 
