@@ -1,0 +1,42 @@
+name: Build unsigned IPA
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install XcodeGen
+        run: brew install xcodegen
+
+      - name: Generate Xcode project
+        run: xcodegen generate
+
+      - name: Build archive (unsigned)
+        run: |
+          xcodebuild \
+            -project MessagesUI.xcodeproj \
+            -scheme MessagesUI \
+            -sdk iphoneos \
+            -configuration Release \
+            -archivePath build/MessagesUI.xcarchive \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_IDENTITY="" \
+            archive
+
+      - name: Package IPA
+        run: |
+          mkdir -p Payload
+          cp -R "build/MessagesUI.xcarchive/Products/Applications/"*.app Payload/
+          zip -r MessagesUI-unsigned.ipa Payload
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: MessagesUI-unsigned-ipa
+          path: MessagesUI-unsigned.ipa
