@@ -86,17 +86,14 @@ enum SampleData {
             fallbackReply: "",
             templateType: .viettel
         )
-        // Thêm rule mặc định Viettel TTTB
-        let tttbRule = ReplyRule(
-            trigger: "TTTB",
-            reply: """
-Quy khach vui long truy cap ung dung VNeID de kiem tra va xac nhan su dung so dien thoai. \
-Huong dan chi tiet vui long xem tai https://www.mobifone.vn/tin-tuc/chi-tiet/huong-dan-xac-nhan-tich-hop-so-dien-thoai-tren-vneid-25501. \
-Tran trong cam on Quy khach.
-"""
-        )
-        tttbRule.conversation = c1414
-        c1414.replyRules.append(tttbRule)
+        // Cấu hình mẫu Viettel: gửi tin chứa "TTTB" → tự trả lời TTTB
+        c1414.trigger = "TTTB"
+        c1414.mPhone = "0776816907"
+        c1414.mName = "NGUYEN NGOC HUNG"
+        c1414.mDob = "14/09/2006"
+        c1414.mCccd = "049206013094"
+        c1414.mNgayCap = "23/02/2022"
+        c1414.mNgayKichHoat = "09/04/2022"
 
         let msg1414_1 = Message(
             content: "TB tra truoc ca nhan. Ho ten: NGUYEN NGOC HUNG. Danh sach so thue bao dang ky: 0776816907. Neu thong tin quy khach khong dung, Quy khach vui long truy cap ung dung VNSKY hoac lien he tong dai 19005222 (Cuoc phi 1000d/phut) de dang ky lai thong tin theo quy dinh. Cam on Quy khach.",

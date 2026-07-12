@@ -19,6 +19,11 @@ final class Conversation {
     var fallbackReply: String       // Phản hồi mặc định nếu không khớp trigger
     var templateType: TemplateType  // Mẫu SMS (MobiFone / Viettel / None)
 
+    // Từ khóa kích hoạt tự động trả lời (rỗng = trả lời mọi tin)
+    var trigger: String = ""
+    // Nội dung tự viết (khi templateType == .custom)
+    var customReply: String = ""
+
     // Thông tin thuê bao dùng cho mẫu TTTB
     var mName: String = ""
     var mDob: String = ""

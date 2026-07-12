@@ -271,7 +271,7 @@ struct ChatView: View {
     }
 
     func sendImage(_ data: Data) {
-        let msg = Message(content: "", isFromMe: true, status: .failed, imageData: data)
+        let msg = Message(content: "", isFromMe: true, status: .sent, imageData: data)
         msg.conversation = conversation
         conversation.messages.append(msg)
         conversation.lastMessage = "[Hình ảnh]"

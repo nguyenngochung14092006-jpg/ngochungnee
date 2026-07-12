@@ -1,222 +1,197 @@
 import SwiftUI
 import SwiftData
 
-/// ChatConfigView — màn hình cấu hình tự động trả lời cho từng cuộc hội thoại
-/// Giống ChatConfigView.swift trong IPA gốc
+/// ChatConfigView — "Cấu hình trò chuyện" (giống hệt IPA gốc).
+/// Kiểu câu trả lời: Tự viết / Mẫu 1 (MobiFone) / Mẫu 2 (Viettel).
 struct ChatConfigView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.modelContext) private var modelContext
     @Bindable var conversation: Conversation
 
-    @State private var newTrigger = ""
-    @State private var newReply = ""
-    @State private var showAddRule = false
+    // Bản nháp — chỉ ghi vào model khi bấm "Lưu"
+    @State private var mode: TemplateType = .custom
+    @State private var trigger = ""
+    @State private var customReply = ""
+    @State private var name = ""
+    @State private var dob = ""
+    @State private var phone = ""
+    @State private var cccd = ""
+    @State private var ngayCap = ""
+    @State private var ngayKichHoat = ""
+    @State private var delay = 3.0
+
+    private let blue = Color(red: 0.0, green: 0.48, blue: 1.0)
 
     var body: some View {
         NavigationStack {
-            List {
-                // ── Contact Info ─────────────────────────────────────
-                Section {
-                    HStack {
-                        Spacer()
-                        VStack(spacing: 8) {
-                            AvatarView(
-                                initials: conversation.avatarInitials,
-                                color: conversation.avatarColor,
-                                size: 72
-                            )
-                            Text(conversation.contactName)
-                                .font(.system(size: 22, weight: .semibold))
-                            Text(conversation.contactPhone)
-                                .font(.system(size: 15))
-                                .foregroundStyle(.secondary)
-                        }
-                        Spacer()
+            Form {
+                // ── Kiểu câu trả lời ───────────────────────────────
+                Section("Kiểu câu trả lời") {
+                    Picker("", selection: $mode) {
+                        Text("Tự viết").tag(TemplateType.custom)
+                        Text("Mẫu 1").tag(TemplateType.mobifone)
+                        Text("Mẫu 2").tag(TemplateType.viettel)
                     }
+                    .pickerStyle(.segmented)
                     .listRowBackground(Color.clear)
-                    .listRowInsets(EdgeInsets(top: 16, leading: 0, bottom: 16, trailing: 0))
+                    .listRowInsets(EdgeInsets(top: 4, leading: 0, bottom: 4, trailing: 0))
                 }
 
-                // ── Auto Reply Toggle ─────────────────────────────────
-                Section("Tự động trả lời") {
-                    Toggle("Bật tự động trả lời", isOn: $conversation.autoReplyEnabled)
-
-                    if conversation.autoReplyEnabled {
-                        VStack(alignment: .leading, spacing: 6) {
-                            Text("Độ trễ phản hồi: \(String(format: "%.1f", conversation.replyDelay))s")
-                                .font(.system(size: 15))
-                            Slider(value: $conversation.replyDelay, in: 0.5...10.0, step: 0.5)
-                                .tint(.primary)
-                        }
-                        .padding(.vertical, 4)
-                    }
-                }
-
-                // ── Template Selector ─────────────────────────────────
-                if conversation.autoReplyEnabled {
-                    Section("Mẫu tin nhắn") {
-                        ForEach(TemplateType.allCases, id: \.self) { type in
-                            HStack {
-                                VStack(alignment: .leading, spacing: 2) {
-                                    Text(type.rawValue)
-                                        .font(.system(size: 16))
-                                    Text(templateDescription(type))
-                                        .font(.system(size: 12))
-                                        .foregroundStyle(.secondary)
-                                }
-                                Spacer()
-                                if conversation.templateType == type {
-                                    Image(systemName: "checkmark")
-                                        .foregroundStyle(.primary)
-                                        .fontWeight(.semibold)
-                                }
-                            }
-                            .contentShape(Rectangle())
-                            .onTapGesture {
-                                conversation.templateType = type
-                            }
-                        }
-                    }
-
-                    // ── Fallback Reply ────────────────────────────────
-                    Section("Phản hồi mặc định (nếu không khớp)") {
-                        TextField("Nhập nội dung phản hồi...", text: $conversation.fallbackReply, axis: .vertical)
-                            .font(.system(size: 15))
-                            .lineLimit(3...6)
-                    }
-
-                    // ── Keyword Rules ─────────────────────────────────
-                    Section {
-                        ForEach(conversation.replyRules) { rule in
-                            RuleRowView(rule: rule) {
-                                modelContext.delete(rule)
-                            }
-                        }
-
-                        // Add new rule
-                        if showAddRule {
-                            VStack(spacing: 8) {
-                                HStack {
-                                    Text("Từ khóa:")
-                                        .font(.system(size: 13))
-                                        .foregroundStyle(.secondary)
-                                        .frame(width: 70, alignment: .leading)
-                                    TextField("ví dụ: TTTB, OTP...", text: $newTrigger)
-                                        .font(.system(size: 15))
-                                }
-                                HStack(alignment: .top) {
-                                    Text("Trả lời:")
-                                        .font(.system(size: 13))
-                                        .foregroundStyle(.secondary)
-                                        .frame(width: 70, alignment: .leading)
-                                    TextField("Nội dung tự động trả lời...", text: $newReply, axis: .vertical)
-                                        .font(.system(size: 15))
-                                        .lineLimit(2...4)
-                                }
-                                HStack {
-                                    Button("Huỷ") {
-                                        showAddRule = false
-                                        newTrigger = ""
-                                        newReply = ""
-                                    }
-                                    .foregroundStyle(.red)
-                                    Spacer()
-                                    Button("Lưu") {
-                                        guard !newTrigger.isEmpty, !newReply.isEmpty else { return }
-                                        let rule = ReplyRule(trigger: newTrigger, reply: newReply)
-                                        rule.conversation = conversation
-                                        conversation.replyRules.append(rule)
-                                        modelContext.insert(rule)
-                                        newTrigger = ""
-                                        newReply = ""
-                                        showAddRule = false
-                                    }
-                                    .fontWeight(.semibold)
-                                    .disabled(newTrigger.isEmpty || newReply.isEmpty)
-                                }
-                                .font(.system(size: 15))
-                            }
-                            .padding(.vertical, 4)
-                        }
-                    } header: {
-                        HStack {
-                            Text("Quy tắc từ khóa (\(conversation.replyRules.count))")
-                            Spacer()
-                            Button("+ Thêm") {
-                                showAddRule = true
-                            }
-                            .font(.system(size: 14, weight: .medium))
-                            .foregroundStyle(.primary)
-                        }
-                    }
-                }
-
-                // ── Danger Zone ───────────────────────────────────────
+                // ── Từ khóa ────────────────────────────────────────
                 Section {
-                    Button(role: .destructive) {
-                        conversation.messages.removeAll()
-                        dismiss()
-                    } label: {
-                        Label("Xóa tất cả tin nhắn", systemImage: "trash")
+                    TextField("Từ khóa (vd: TTTB ...)", text: $trigger)
+                        .font(.system(size: 17))
+                        .autocorrectionDisabled()
+                        .textInputAutocapitalization(.never)
+                } footer: {
+                    Text("Khi bạn gửi một tin có chứa từ khóa, người nhận sẽ tự trả lời bằng nội dung này. Để trống từ khóa nếu muốn trả lời cho mọi tin nhắn.")
+                }
+
+                // ── Cấu hình theo mẫu ──────────────────────────────
+                switch mode {
+                case .custom:
+                    Section("Nội dung tự trả lời") {
+                        TextField("Nhập nội dung...", text: $customReply, axis: .vertical)
+                            .font(.system(size: 17))
+                            .lineLimit(4...12)
                     }
+
+                case .mobifone:
+                    Section("Cấu hình Mẫu 1 (MobiFone)") {
+                        field("Họ tên", text: $name)
+                        randomField("Ngày sinh", text: $dob) { dob = MessageTemplate.randomDate(fromYear: 1970, toYear: 2005) }
+                        field("Số thuê bao", text: $phone)
+                        randomAllButton()
+                    }
+
+                case .viettel:
+                    Section("Cấu hình Mẫu 2 (Viettel)") {
+                        field("Số thuê bao", text: $phone)
+                        field("Họ tên", text: $name)
+                        randomField("Ngày sinh", text: $dob) { dob = MessageTemplate.randomDate(fromYear: 1970, toYear: 2005) }
+                        randomField("Số căn cước", text: $cccd) { cccd = MessageTemplate.randomCCCD() }
+                        randomField("Ngày cấp", text: $ngayCap) { ngayCap = MessageTemplate.randomDate(fromYear: 2016, toYear: 2023) }
+                        randomField("Ngày kích hoạt", text: $ngayKichHoat) { ngayKichHoat = MessageTemplate.randomDate(fromYear: 2018, toYear: 2024) }
+                        randomAllButton()
+                    }
+
+                case .shopeepay, .none:
+                    EmptyView()
+                }
+
+                // ── Xem trước ──────────────────────────────────────
+                Section("Xem trước tin nhắn") {
+                    Text(previewText)
+                        .font(.system(size: 15))
+                        .foregroundStyle(.secondary)
+                        .textSelection(.enabled)
+                }
+
+                // ── Thời gian trả lời ──────────────────────────────
+                Section("Thời gian trả lời") {
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text("\(String(format: "%.1f", delay)) giây")
+                            .font(.system(size: 15))
+                        Slider(value: $delay, in: 0.5...10.0, step: 0.5)
+                            .tint(.primary)
+                    }
+                    .padding(.vertical, 4)
                 }
             }
-            .navigationTitle("Cấu hình cuộc hội thoại")
+            .navigationTitle("Cấu hình trò chuyện")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Hủy") { dismiss() }
+                }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("Xong") { dismiss() }
-                        .fontWeight(.semibold)
+                    Button("Lưu") { save() }.fontWeight(.semibold)
                 }
             }
         }
+        .onAppear(perform: load)
     }
 
-    func templateDescription(_ type: TemplateType) -> String {
-        switch type {
-        case .none: return "Chỉ dùng quy tắc từ khóa"
-        case .mobifone: return "Gia hạn, nạp tiền, khuyến mãi MobiFone"
-        case .viettel: return "Chuẩn hóa TTTB, tra cứu thuê bao"
-        case .shopeepay: return "OTP, thanh toán SPayLater"
-        case .custom: return "Tùy chỉnh hoàn toàn"
-        }
+    // MARK: - Preview
+
+    private var previewText: String {
+        let temp = Conversation(
+            contactName: "", contactPhone: "", avatarColor: "", avatarInitials: "",
+            lastMessage: "", lastMessageDate: .now, isRead: true,
+            autoReplyEnabled: true, replyDelay: delay, fallbackReply: "",
+            templateType: mode
+        )
+        temp.customReply = customReply
+        temp.mName = name; temp.mDob = dob; temp.mPhone = phone
+        temp.mCccd = cccd; temp.mNgayCap = ngayCap; temp.mNgayKichHoat = ngayKichHoat
+        let out = MessageTemplate.render(for: temp)
+        return out.isEmpty ? "(chưa có nội dung)" : out
     }
-}
 
-// MARK: - Rule Row
+    // MARK: - Row builders
 
-struct RuleRowView: View {
-    @Bindable var rule: ReplyRule
-    let onDelete: () -> Void
+    @ViewBuilder
+    private func field(_ placeholder: String, text: Binding<String>) -> some View {
+        TextField(placeholder, text: text)
+            .font(.system(size: 17))
+    }
 
-    var body: some View {
-        HStack(alignment: .top, spacing: 12) {
-            Toggle("", isOn: $rule.isEnabled)
-                .labelsHidden()
-                .frame(width: 40)
-
-            VStack(alignment: .leading, spacing: 3) {
-                HStack {
-                    Text("Từ khóa:")
-                        .font(.system(size: 12))
-                        .foregroundStyle(.secondary)
-                    Text(rule.trigger)
-                        .font(.system(size: 14, weight: .semibold))
-                        .foregroundStyle(rule.isEnabled ? .primary : .secondary)
-                }
-                Text(rule.reply)
-                    .font(.system(size: 13))
-                    .foregroundStyle(.secondary)
-                    .lineLimit(2)
-            }
-
+    @ViewBuilder
+    private func randomField(_ placeholder: String, text: Binding<String>, action: @escaping () -> Void) -> some View {
+        HStack {
+            TextField(placeholder, text: text)
+                .font(.system(size: 17))
             Spacer()
-
-            Button(role: .destructive, action: onDelete) {
-                Image(systemName: "minus.circle.fill")
-                    .foregroundStyle(.red)
-            }
+            Button("Random", action: action)
+                .font(.system(size: 16))
+                .foregroundStyle(blue)
         }
-        .padding(.vertical, 4)
+    }
+
+    @ViewBuilder
+    private func randomAllButton() -> some View {
+        Button(action: randomizeAll) {
+            Label("Tạo ngẫu nhiên thông tin", systemImage: "die.face.5.fill")
+                .foregroundStyle(blue)
+        }
+    }
+
+    // MARK: - Actions
+
+    private func randomizeAll() {
+        name = MessageTemplate.randomName()
+        dob = MessageTemplate.randomDate(fromYear: 1970, toYear: 2005)
+        phone = MessageTemplate.randomPhone()
+        cccd = MessageTemplate.randomCCCD()
+        ngayCap = MessageTemplate.randomDate(fromYear: 2016, toYear: 2023)
+        ngayKichHoat = MessageTemplate.randomDate(fromYear: 2018, toYear: 2024)
+    }
+
+    private func load() {
+        mode = (conversation.templateType == .none) ? .custom : conversation.templateType
+        trigger = conversation.trigger
+        customReply = conversation.customReply
+        name = conversation.mName
+        dob = conversation.mDob
+        phone = conversation.mPhone
+        cccd = conversation.mCccd
+        ngayCap = conversation.mNgayCap
+        ngayKichHoat = conversation.mNgayKichHoat
+        delay = conversation.replyDelay > 0 ? conversation.replyDelay : 3.0
+    }
+
+    private func save() {
+        conversation.autoReplyEnabled = true
+        conversation.templateType = mode
+        conversation.trigger = trigger.trimmingCharacters(in: .whitespacesAndNewlines)
+        conversation.customReply = customReply
+        conversation.mName = name
+        conversation.mDob = dob
+        conversation.mPhone = phone
+        conversation.mCccd = cccd
+        conversation.mNgayCap = ngayCap
+        conversation.mNgayKichHoat = ngayKichHoat
+        conversation.replyDelay = delay
+        dismiss()
     }
 }
