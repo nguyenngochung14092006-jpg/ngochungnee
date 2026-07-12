@@ -16,6 +16,10 @@ settings:
     CURRENT_PROJECT_VERSION: "1"
     DEVELOPMENT_TEAM: ""
     TARGETED_DEVICE_FAMILY: "1"
+    GENERATE_INFOPLIST_FILE: YES
+    INFOPLIST_KEY_CFBundleDisplayName: "Tin nhắn"
+    INFOPLIST_KEY_UILaunchScreen_Generation: YES
+    INFOPLIST_KEY_UISupportedInterfaceOrientations: "UIInterfaceOrientationPortrait"
 
 targets:
   MessagesUI:
