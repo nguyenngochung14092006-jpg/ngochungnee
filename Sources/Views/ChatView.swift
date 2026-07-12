@@ -9,6 +9,7 @@ struct ChatView: View {
 
     @State private var messageText = ""
     @State private var isShowingConfig = false
+    @State private var isShowingDetail = false
     @State private var isTyping = false
     @State private var scrollProxy: ScrollViewProxy? = nil
 
@@ -87,6 +88,9 @@ struct ChatView: View {
         .sheet(isPresented: $isShowingConfig) {
             ChatConfigView(conversation: conversation)
         }
+        .sheet(isPresented: $isShowingDetail) {
+            ContactDetailView(conversation: conversation)
+        }
         .onAppear {
             conversation.isRead = true
         }
@@ -95,76 +99,60 @@ struct ChatView: View {
     // MARK: - Navigation Bar
 
     var chatNavBar: some View {
-        HStack(spacing: 4) {
-            // Back button
+        ZStack {
+            // Center: avatar + name (giống iOS Messages)
             Button {
-                dismiss()
+                isShowingDetail = true
             } label: {
-                HStack(spacing: 2) {
-                    Image(systemName: "chevron.left")
-                        .font(.system(size: 17, weight: .semibold))
-                    if totalUnread > 0 {
-                        Text("\(totalUnread)")
-                            .font(.system(size: 17))
-                    }
-                }
-                .foregroundStyle(.blue)
-            }
-            .padding(.leading, 8)
-
-            Spacer()
-
-            // Center: avatar + name
-            Button {
-                isShowingConfig = true
-            } label: {
-                VStack(spacing: 2) {
+                VStack(spacing: 3) {
                     AvatarView(
                         initials: conversation.avatarInitials,
                         color: conversation.avatarColor,
-                        size: 32
+                        size: 50
                     )
-                    HStack(spacing: 3) {
+                    HStack(spacing: 2) {
                         Text(conversation.contactName)
-                            .font(.system(size: 13, weight: .medium))
+                            .font(.system(size: 12))
                             .foregroundStyle(.primary)
                             .lineLimit(1)
                         Image(systemName: "chevron.right")
-                            .font(.system(size: 10, weight: .semibold))
-                            .foregroundStyle(.secondary)
+                            .font(.system(size: 9, weight: .semibold))
+                            .foregroundStyle(Color(.systemGray2))
                     }
                 }
             }
-
-            Spacer()
-
-            // Right: video + phone
-            HStack(spacing: 8) {
-                Button {
-                    // Video call placeholder
-                } label: {
-                    Image(systemName: "video")
-                        .font(.system(size: 16))
-                        .frame(width: 32, height: 32)
-                        .background(Color(.systemFill))
-                        .clipShape(Circle())
-                        .foregroundStyle(.blue)
+            .simultaneousGesture(
+                LongPressGesture(minimumDuration: 0.6).onEnded { _ in
+                    isShowingConfig = true
                 }
+            )
 
+            HStack {
+                // Back button: chevron + số chưa đọc trong pill xám
                 Button {
-                    // Phone call placeholder
+                    dismiss()
                 } label: {
-                    Image(systemName: "phone")
-                        .font(.system(size: 16))
-                        .frame(width: 32, height: 32)
-                        .background(Color(.systemFill))
-                        .clipShape(Circle())
-                        .foregroundStyle(.blue)
+                    HStack(spacing: 5) {
+                        Image(systemName: "chevron.left")
+                            .font(.system(size: 17, weight: .semibold))
+                        if totalUnread > 0 {
+                            Text("\(totalUnread)")
+                                .font(.system(size: 15, weight: .medium))
+                        }
+                    }
+                    .foregroundStyle(.primary)
+                    .padding(.horizontal, 12)
+                    .frame(height: 36)
+                    .background(Color(.systemGray6))
+                    .clipShape(Capsule())
                 }
+                .padding(.leading, 8)
+
+                Spacer()
             }
-            .padding(.trailing, 8)
+            .padding(.bottom, 34)
         }
-        .frame(height: 44)
+        .frame(height: 84)
         .background(.background)
     }
 
@@ -174,54 +162,52 @@ struct ChatView: View {
         VStack(spacing: 0) {
             Divider()
             HStack(alignment: .bottom, spacing: 6) {
-                // Plus button
+                // Plus button (vòng tròn xám nhạt giống iOS)
                 Button {
                     // Attachment menu
                 } label: {
-                    Image(systemName: "plus.circle")
-                        .font(.system(size: 28))
-                        .foregroundStyle(.blue)
+                    Image(systemName: "plus")
+                        .font(.system(size: 18, weight: .medium))
+                        .foregroundStyle(Color(.darkGray))
+                        .frame(width: 34, height: 34)
+                        .background(Color(.systemGray6))
+                        .clipShape(Circle())
                 }
-                .padding(.bottom, 4)
+                .padding(.bottom, 1)
 
                 // Text input
-                HStack {
+                HStack(alignment: .bottom, spacing: 4) {
                     TextField("Tin nhắn văn bản \u{2022} SMS", text: $messageText, axis: .vertical)
                         .font(.system(size: 17))
                         .lineLimit(5)
-                        .padding(.horizontal, 4)
+                        .padding(.leading, 6)
+
+                    if messageText.trimmingCharacters(in: .whitespaces).isEmpty {
+                        Image(systemName: "mic.fill")
+                            .font(.system(size: 17))
+                            .foregroundStyle(Color(.systemGray2))
+                            .padding(.trailing, 2)
+                    } else {
+                        Button {
+                            sendMessage()
+                        } label: {
+                            Image(systemName: "arrow.up.circle.fill")
+                                .font(.system(size: 26))
+                                .foregroundStyle(Color(red: 0.20, green: 0.84, blue: 0.29))
+                        }
+                        .offset(x: 3)
+                    }
                 }
-                .padding(.horizontal, 10)
-                .padding(.vertical, 7)
+                .padding(.horizontal, 8)
+                .padding(.vertical, 6)
                 .background(Color(.systemBackground))
                 .overlay(
                     RoundedRectangle(cornerRadius: 18)
-                        .stroke(Color(.separator), lineWidth: 1)
+                        .stroke(Color(.separator).opacity(0.6), lineWidth: 1)
                 )
                 .clipShape(RoundedRectangle(cornerRadius: 18))
-
-                // Send / Mic
-                if messageText.trimmingCharacters(in: .whitespaces).isEmpty {
-                    Button {
-                        // Mic
-                    } label: {
-                        Image(systemName: "mic")
-                            .font(.system(size: 18))
-                            .foregroundStyle(.blue)
-                    }
-                    .padding(.bottom, 6)
-                } else {
-                    Button {
-                        sendMessage()
-                    } label: {
-                        Image(systemName: "arrow.up.circle.fill")
-                            .font(.system(size: 30))
-                            .foregroundStyle(.green)
-                    }
-                    .padding(.bottom, 2)
-                }
             }
-            .padding(.horizontal, 8)
+            .padding(.horizontal, 12)
             .padding(.vertical, 8)
             .padding(.bottom, 4)
         }

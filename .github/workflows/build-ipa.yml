@@ -11,8 +11,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Install XcodeGen
-        run: brew install xcodegen
+      - name: Install XcodeGen and ldid
+        run: brew install xcodegen ldid
 
       - name: Generate Xcode project
         run: xcodegen generate
@@ -30,13 +30,18 @@ jobs:
             CODE_SIGN_IDENTITY="" \
             archive
 
+      - name: Fake-sign with ldid
+        run: |
+          APP="build/MessagesUI.xcarchive/Products/Applications/MessagesUI.app"
+          ldid -S "$APP/MessagesUI"
+
       - name: Package IPA
         run: |
           mkdir -p Payload
-          cp -R "build/MessagesUI.xcarchive/Products/Applications/"*.app Payload/
-          zip -r MessagesUI-unsigned.ipa Payload
+          cp -R "build/MessagesUI.xcarchive/Products/Applications/MessagesUI.app" Payload/
+          zip -qry MessagesUI.ipa Payload
 
       - uses: actions/upload-artifact@v4
         with:
-          name: MessagesUI-unsigned-ipa
-          path: MessagesUI-unsigned.ipa
+          name: MessagesUI-ipa
+          path: MessagesUI.ipa

@@ -14,23 +14,12 @@ struct MessageBubbleView: View {
             HStack(alignment: .bottom, spacing: 0) {
                 if message.isFromMe { Spacer(minLength: 60) }
 
-                VStack(alignment: message.isFromMe ? .trailing : .leading, spacing: 2) {
-                    // Bubble
-                    bubbleContent
-                        .onTapGesture {
-                            withAnimation(.spring(duration: 0.25)) {
-                                showTime.toggle()
-                            }
+                bubbleContent
+                    .onTapGesture {
+                        withAnimation(.spring(duration: 0.25)) {
+                            showTime.toggle()
                         }
-
-                    // Auto-reply badge
-                    if message.isAutoReply {
-                        Text("Tự động trả lời")
-                            .font(.system(size: 10))
-                            .foregroundStyle(.secondary)
-                            .padding(.horizontal, 4)
                     }
-                }
 
                 if !message.isFromMe { Spacer(minLength: 60) }
             }
@@ -57,12 +46,15 @@ struct MessageBubbleView: View {
         Text(attributed)
             .font(.system(size: 17))
             .foregroundStyle(message.isFromMe ? .white : .primary)
-            .padding(.horizontal, 14)
-            .padding(.vertical, 9)
-            .background(message.isFromMe ? Color.green : Color(.systemGray5))
-            .clipShape(
-                BubbleShape(isFromMe: message.isFromMe, isTail: isTail)
+            .padding(.horizontal, 13)
+            .padding(.vertical, 8)
+            .background(
+                BubbleWithTail(isFromMe: message.isFromMe, showTail: isTail)
+                    .fill(message.isFromMe
+                          ? Color(red: 0.20, green: 0.84, blue: 0.29)
+                          : Color(.systemGray5))
             )
+            .padding(message.isFromMe ? .trailing : .leading, isTail ? 4 : 0)
             .tint(message.isFromMe ? .white : .blue)
     }
 
@@ -84,40 +76,41 @@ struct MessageBubbleView: View {
     }
 }
 
-// MARK: - Bubble Shape
+// MARK: - Bubble Shape (với đuôi cong kiểu iMessage)
 
-struct BubbleShape: Shape {
+struct BubbleWithTail: Shape {
     let isFromMe: Bool
-    let isTail: Bool
+    let showTail: Bool
 
     func path(in rect: CGRect) -> Path {
-        let radius: CGFloat = 18
-        let tailRadius: CGFloat = 4
-        var path = Path()
+        let radius: CGFloat = min(18, rect.height / 2)
+        var path = Path(roundedRect: rect, cornerRadius: radius)
 
+        guard showTail else { return path }
+
+        var tail = Path()
         if isFromMe {
-            // Right bubble
-            path.addRoundedRect(
-                in: rect,
-                cornerRadii: .init(
-                    topLeading: radius,
-                    bottomLeading: radius,
-                    bottomTrailing: isTail ? tailRadius : radius,
-                    topTrailing: radius
-                )
-            )
+            let x = rect.maxX
+            let y = rect.maxY
+            tail.move(to: CGPoint(x: x - radius, y: y))
+            tail.addQuadCurve(to: CGPoint(x: x + 5, y: y),
+                              control: CGPoint(x: x - 2, y: y))
+            tail.addQuadCurve(to: CGPoint(x: x - 1, y: y - 10),
+                              control: CGPoint(x: x + 1, y: y - 3))
+            tail.addLine(to: CGPoint(x: x - radius, y: y - 10))
+            tail.closeSubpath()
         } else {
-            // Left bubble
-            path.addRoundedRect(
-                in: rect,
-                cornerRadii: .init(
-                    topLeading: radius,
-                    bottomLeading: isTail ? tailRadius : radius,
-                    bottomTrailing: radius,
-                    topTrailing: radius
-                )
-            )
+            let x = rect.minX
+            let y = rect.maxY
+            tail.move(to: CGPoint(x: x + radius, y: y))
+            tail.addQuadCurve(to: CGPoint(x: x - 5, y: y),
+                              control: CGPoint(x: x + 2, y: y))
+            tail.addQuadCurve(to: CGPoint(x: x + 1, y: y - 10),
+                              control: CGPoint(x: x - 1, y: y - 3))
+            tail.addLine(to: CGPoint(x: x + radius, y: y - 10))
+            tail.closeSubpath()
         }
+        path.addPath(tail)
         return path
     }
 }
