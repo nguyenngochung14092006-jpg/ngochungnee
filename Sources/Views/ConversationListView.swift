@@ -90,10 +90,9 @@ struct ConversationListView: View {
                             Button {
                                 conv.isRead.toggle()
                             } label: {
-                                Label(conv.isRead ? "Chưa đọc" : "Đã đọc",
-                                      systemImage: conv.isRead ? "message.badge" : "message")
+                                Label("Ẩn cảnh báo", systemImage: "bell.slash.fill")
                             }
-                            .tint(Color(.darkGray))
+                            .tint(Color(.systemIndigo))
                         }
                     }
                 }
@@ -210,9 +209,6 @@ struct ConversationRowView: View {
         }
         .padding(.vertical, 10)
         .contentShape(Rectangle())
-        .onTapGesture {
-            conversation.isRead = true
-        }
     }
 
     var badgeSymbol: String {
