@@ -65,9 +65,9 @@ struct ContactDetailView: View {
                 // ── Tạo liên hệ ───────────────────────────────────────
                 Section {
                     Button("Tạo liên hệ mới") {}
-                        .foregroundStyle(.blue)
+                        .foregroundStyle(.primary)
                     Button("Thêm vào liên hệ có sẵn") {}
-                        .foregroundStyle(.blue)
+                        .foregroundStyle(.primary)
                 }
 
                 // ── Đường dây hội thoại ───────────────────────────────
@@ -101,7 +101,7 @@ struct ContactDetailView: View {
                     VStack(alignment: .leading, spacing: 2) {
                         Text("Cuộc hội thoại này không được mã hóa.")
                         Text("Tìm hiểu thêm...")
-                            .foregroundStyle(.blue)
+                            .foregroundStyle(.primary)
                     }
                     .font(.system(size: 13))
                 }

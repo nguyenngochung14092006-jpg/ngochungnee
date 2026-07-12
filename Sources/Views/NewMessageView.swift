@@ -52,7 +52,7 @@ struct NewMessageView: View {
                     } else {
                         TextField("", text: $toText)
                             .font(.system(size: 17))
-                            .foregroundStyle(.blue)
+                            .foregroundStyle(.primary)
                             .focused($toFocused)
                             .autocorrectionDisabled()
                     }
@@ -64,7 +64,7 @@ struct NewMessageView: View {
                     } label: {
                         Image(systemName: "plus.circle")
                             .font(.system(size: 24))
-                            .foregroundStyle(.blue)
+                            .foregroundStyle(.primary)
                     }
                 }
                 .padding(.horizontal, 16)

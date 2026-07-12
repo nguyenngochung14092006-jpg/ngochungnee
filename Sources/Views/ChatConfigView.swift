@@ -67,7 +67,7 @@ struct ChatConfigView: View {
                                 Spacer()
                                 if conversation.templateType == type {
                                     Image(systemName: "checkmark")
-                                        .foregroundStyle(.blue)
+                                        .foregroundStyle(.primary)
                                         .fontWeight(.semibold)
                                 }
                             }
@@ -146,7 +146,7 @@ struct ChatConfigView: View {
                                 showAddRule = true
                             }
                             .font(.system(size: 14, weight: .medium))
-                            .foregroundStyle(.blue)
+                            .foregroundStyle(.primary)
                         }
                     }
                 }
@@ -202,7 +202,7 @@ struct RuleRowView: View {
                         .foregroundStyle(.secondary)
                     Text(rule.trigger)
                         .font(.system(size: 14, weight: .semibold))
-                        .foregroundStyle(rule.isEnabled ? .blue : .secondary)
+                        .foregroundStyle(rule.isEnabled ? .primary : .secondary)
                 }
                 Text(rule.reply)
                     .font(.system(size: 13))

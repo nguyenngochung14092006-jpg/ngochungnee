@@ -15,6 +15,7 @@ struct ContentView: View {
                 showNewMessage: $showNewMessage
             )
         }
+        .tint(.primary)
         .onAppear {
             if !hasSeeded && conversations.isEmpty {
                 SampleData.seed(context: modelContext)

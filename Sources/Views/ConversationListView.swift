@@ -61,15 +61,10 @@ struct ConversationListView: View {
                     }
                     .frame(height: 52)
 
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text("Tin nhắn")
-                            .font(.system(size: 34, weight: .bold))
-                            .foregroundStyle(.primary)
-                        Text("Đã tạm dừng đồng bộ hóa với iCloud")
-                            .font(.system(size: 13))
-                            .foregroundStyle(.secondary)
-                    }
-                    .padding(.bottom, 10)
+                    Text("Tin nhắn")
+                        .font(.system(size: 34, weight: .bold))
+                        .foregroundStyle(.primary)
+                        .padding(.bottom, 10)
                 }
                 .padding(.horizontal, 16)
                 .background(.background)
