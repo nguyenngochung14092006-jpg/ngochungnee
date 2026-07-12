@@ -164,6 +164,19 @@ struct ChatView: View {
                 .padding(.leading, 8)
 
                 Spacer()
+
+                // Nút cấu hình tự động trả lời
+                Button {
+                    isShowingConfig = true
+                } label: {
+                    Image(systemName: "gearshape.fill")
+                        .font(.system(size: 16, weight: .semibold))
+                        .foregroundStyle(.primary)
+                        .frame(width: 36, height: 36)
+                        .background(Color(.systemGray6))
+                        .clipShape(Circle())
+                }
+                .padding(.trailing, 12)
             }
             .padding(.bottom, 34)
         }
