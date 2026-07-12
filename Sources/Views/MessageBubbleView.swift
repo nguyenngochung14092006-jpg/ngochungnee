@@ -24,12 +24,33 @@ struct MessageBubbleView: View {
                         }
                     }
                     .contextMenu {
-                        ForEach(MessageReaction.allCases, id: \.self) { r in
-                            Button {
-                                onReact?(r)
-                            } label: {
-                                Label(reactionLabel(r), systemImage: r.symbol)
+                        Menu {
+                            ForEach(MessageReaction.allCases, id: \.self) { r in
+                                Button {
+                                    onReact?(r)
+                                } label: {
+                                    Label(reactionLabel(r), systemImage: r.symbol)
+                                }
                             }
+                        } label: {
+                            Label("Thả cảm xúc", systemImage: "heart")
+                        }
+                        Button { } label: {
+                            Label("Đính kèm nhãn dán", systemImage: "face.smiling")
+                        }
+                        Button {
+                            UIPasteboard.general.string = message.content
+                        } label: {
+                            Label("Sao chép", systemImage: "doc.on.doc")
+                        }
+                        Button { } label: {
+                            Label("Dịch thuật", systemImage: "translate")
+                        }
+                        Button { } label: {
+                            Label("Chọn", systemImage: "checkmark.circle")
+                        }
+                        Button { } label: {
+                            Label("Thêm…", systemImage: "ellipsis.circle")
                         }
                     }
                     .onTapGesture {

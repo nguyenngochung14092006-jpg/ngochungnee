@@ -8,6 +8,7 @@ struct ContactDetailView: View {
     @Bindable var conversation: Conversation
 
     @State private var hideAlerts = false
+    @State private var isShowingConfig = false
 
     var body: some View {
         NavigationStack {
@@ -93,6 +94,22 @@ struct ContactDetailView: View {
                     Toggle("Ẩn cảnh báo", isOn: $hideAlerts)
                 }
 
+                // ── Cấu hình trả lời tự động ─────────────────────────
+                Section {
+                    Button {
+                        isShowingConfig = true
+                    } label: {
+                        HStack {
+                            Text("Cấu hình trò chuyện")
+                                .foregroundStyle(.primary)
+                            Spacer()
+                            Image(systemName: "chevron.right")
+                                .font(.system(size: 13, weight: .semibold))
+                                .foregroundStyle(Color(.systemGray3))
+                        }
+                    }
+                }
+
                 // ── Chặn liên hệ ──────────────────────────────────────
                 Section {
                     Button("Chặn liên hệ") {}
@@ -107,6 +124,9 @@ struct ContactDetailView: View {
                 }
             }
             .listSectionSpacing(16)
+            .sheet(isPresented: $isShowingConfig) {
+                ChatConfigView(conversation: conversation)
+            }
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
                     Button {

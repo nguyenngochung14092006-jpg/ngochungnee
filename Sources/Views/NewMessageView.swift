@@ -12,7 +12,6 @@ struct NewMessageView: View {
     @State private var toText = ""
     @State private var messageText = ""
     @State private var selectedConversation: Conversation?
-    @State private var isShowingConfig = false
     @FocusState private var toFocused: Bool
     @FocusState private var composerFocused: Bool
 
@@ -138,22 +137,6 @@ struct NewMessageView: View {
                             .foregroundStyle(.primary)
                     }
                 }
-                ToolbarItem(placement: .confirmationAction) {
-                    if selectedConversation != nil {
-                        Button {
-                            isShowingConfig = true
-                        } label: {
-                            Image(systemName: "gearshape.fill")
-                                .font(.system(size: 16, weight: .semibold))
-                                .foregroundStyle(.primary)
-                        }
-                    }
-                }
-            }
-            .sheet(isPresented: $isShowingConfig) {
-                if let conv = selectedConversation {
-                    ChatConfigView(conversation: conv)
-                }
             }
             .onAppear { toFocused = true }
         }
@@ -247,7 +230,7 @@ struct NewMessageView: View {
         )
         msg.conversation = conversation
         conversation.messages.append(msg)
-        conversation.lastMessage = text
+        conversation.lastMessage = reply == nil ? "Lỗi gửi tin nhắn" : text
         conversation.lastMessageDate = .now
         conversation.isRead = true
 

@@ -128,13 +128,19 @@ struct ChatView: View {
                     )
                     HStack(spacing: 2) {
                         Text(conversation.contactName)
-                            .font(.system(size: 12))
+                            .font(.system(size: 13, weight: .semibold))
                             .foregroundStyle(.primary)
                             .lineLimit(1)
                         Image(systemName: "chevron.right")
                             .font(.system(size: 9, weight: .semibold))
                             .foregroundStyle(Color(.systemGray2))
                     }
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 4)
+                    .background(Color(.systemBackground))
+                    .clipShape(Capsule())
+                    .shadow(color: .black.opacity(0.12), radius: 4, y: 1)
+                    .offset(y: -12)
                 }
             }
             .simultaneousGesture(
@@ -147,16 +153,22 @@ struct ChatView: View {
                 Button {
                     dismiss()
                 } label: {
-                    HStack(spacing: 5) {
+                    HStack(spacing: 6) {
                         Image(systemName: "chevron.left")
                             .font(.system(size: 17, weight: .semibold))
+                            .foregroundStyle(.primary)
                         if totalUnread > 0 {
                             Text("\(totalUnread)")
-                                .font(.system(size: 15, weight: .medium))
+                                .font(.system(size: 14, weight: .semibold))
+                                .foregroundStyle(.white)
+                                .padding(.horizontal, 9)
+                                .padding(.vertical, 3)
+                                .background(Color.black)
+                                .clipShape(Capsule())
                         }
                     }
-                    .foregroundStyle(.primary)
-                    .padding(.horizontal, 12)
+                    .padding(.leading, 12)
+                    .padding(.trailing, totalUnread > 0 ? 5 : 12)
                     .frame(height: 36)
                     .background(Color(.systemGray6))
                     .clipShape(Capsule())
@@ -164,19 +176,6 @@ struct ChatView: View {
                 .padding(.leading, 8)
 
                 Spacer()
-
-                // Nút cấu hình tự động trả lời
-                Button {
-                    isShowingConfig = true
-                } label: {
-                    Image(systemName: "gearshape.fill")
-                        .font(.system(size: 16, weight: .semibold))
-                        .foregroundStyle(.primary)
-                        .frame(width: 36, height: 36)
-                        .background(Color(.systemGray6))
-                        .clipShape(Circle())
-                }
-                .padding(.trailing, 12)
             }
             .padding(.bottom, 34)
         }
@@ -265,7 +264,7 @@ struct ChatView: View {
         )
         msg.conversation = conversation
         conversation.messages.append(msg)
-        conversation.lastMessage = text
+        conversation.lastMessage = reply == nil ? "Lỗi gửi tin nhắn" : text
         conversation.lastMessageDate = .now
         conversation.isRead = true
 
